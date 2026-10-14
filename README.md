@@ -54,8 +54,10 @@ can also reach them by long-pressing the DMs icon → **Settings**.
 
 - **Blocked (each can be switched off):** Home feed, Reels tab, Explore/Search
   tab. Opening any of them sends you back to Messages.
-- **Still works:** everything in Messages, plus posts, reels, stories and
-  profiles that people send you in a chat, your own profile, and settings.
+- **Shared reels:** a reel someone sends you plays normally, but swiping on to
+  the next reel sends you back to the chat (can be switched off).
+- **Still works:** everything in Messages, plus posts, stories and profiles
+  that people send you in a chat, your own profile, and settings.
 
 ## Troubleshooting
 
@@ -87,7 +89,8 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
   the recogniser is updated.
 - You'll still see Instagram's bottom tab bar. Tapping a blocked tab just
   bounces you back.
-- Reels sent to you open normally, and Instagram may let you keep swiping to
-  more reels from there.
+- Spotting a swipe in a shared reel relies on Instagram's reel player view
+  names ("Reel player seen" in Status shows what it found). If swiping isn't
+  caught, send that line.
 - Some phones (notably Xiaomi) switch accessibility services off when they
   clean up background apps; see the Xiaomi step in Setup.

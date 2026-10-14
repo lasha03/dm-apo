@@ -56,6 +56,10 @@ class SetupActivity : ComponentActivity() {
         bindSwitch(R.id.block_home, Screen.HOME)
         bindSwitch(R.id.block_reels, Screen.REELS)
         bindSwitch(R.id.block_search, Screen.SEARCH)
+        findViewById<Switch>(R.id.limit_shared_reels).apply {
+            isChecked = Guard.limitSharedReels(this@SetupActivity)
+            setOnCheckedChangeListener { _, checked -> Guard.setLimitSharedReels(this@SetupActivity, checked) }
+        }
     }
 
     override fun onResume() {
@@ -103,6 +107,7 @@ class SetupActivity : ComponentActivity() {
             d.lastTabs ?: "–",
             d.bounces,
             d.lastBounce ?: "–",
+            d.reelPager ?: "–",
         )
     }
 

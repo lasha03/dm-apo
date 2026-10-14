@@ -20,14 +20,16 @@
     <string name="block_home">Home feed</string>
     <string name="block_reels">Reels tab</string>
     <string name="block_search">Explore &amp; Search</string>
+    <string name="limit_shared_reels">Swiping past a reel someone sent you</string>
+    <string name="reel_toast">Only the reel you were sent 🙂</string>
     <string name="pause_guard">Pause for %1$d minutes</string>
     <string name="resume_guard">Resume now</string>
 
     <string name="section_tips">Tips</string>
-    <string name="tips">• Hide the Instagram icon (put it in a folder) and open DMs instead.\n• Reels and posts people send you still open. Only the tabs above are blocked.\n• Xiaomi/Redmi/POCO: Settings › Apps › Manage apps › DMs: Autostart ON, Battery saver: No restrictions. Otherwise the system may switch the guard off.\n• Settings are also in the long-press menu of the DMs icon.</string>
+    <string name="tips">• Hide the Instagram icon (put it in a folder) and open DMs instead.\n• Reels people send you still open. Swipe to the next one and you\'re sent back to the chat (switch above).\n• Xiaomi/Redmi/POCO: Settings › Apps › Manage apps › DMs: Autostart ON, Battery saver: No restrictions. Otherwise the system may switch the guard off.\n• Settings are also in the long-press menu of the DMs icon.</string>
 
     <string name="section_status">Status (for troubleshooting)</string>
-    <string name="diagnostics">Guard running: %1$s\nLast Instagram screen: %2$s (%3$s)\nTabs seen: %4$s\nTimes sent back: %5$d\nLast: %6$s</string>
+    <string name="diagnostics">Guard running: %1$s\nLast Instagram screen: %2$s (%3$s)\nTabs seen: %4$s\nTimes sent back: %5$d\nLast: %6$s\nReel player seen: %7$s</string>
     <string name="yes">yes</string>
     <string name="no">no</string>
 

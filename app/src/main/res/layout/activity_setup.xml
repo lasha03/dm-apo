@@ -83,6 +83,11 @@
             style="@style/Toggle"
             android:text="@string/block_search" />
 
+        <Switch
+            android:id="@+id/limit_shared_reels"
+            style="@style/Toggle"
+            android:text="@string/limit_shared_reels" />
+
         <Button
             android:id="@+id/pause"
             style="@style/Action.Secondary" />

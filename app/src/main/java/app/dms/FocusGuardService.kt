@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.Toast
 
 /**
  * Keeps the real Instagram app on Messages: when the Home feed, Explore/Search
@@ -18,6 +19,8 @@ class FocusGuardService : AccessibilityService() {
     private var checkScheduled = false
     private var lastBounceAt = 0L
     private val recentBounces = ArrayDeque<Long>()
+    private val reels = ReelSwipeDetector()
+    private var recordedPager: String? = null
 
     private val check = Runnable {
         checkScheduled = false
@@ -30,6 +33,7 @@ class FocusGuardService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.packageName != InstagramScreens.PACKAGE) return
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) onScrolled(event)
         // Throttle: Instagram fires many events (e.g. while videos play); check at most ~4x/second.
         if (!checkScheduled) {
             checkScheduled = true
@@ -59,6 +63,11 @@ class FocusGuardService : AccessibilityService() {
         val result = InstagramScreens.detect(root)
         Guard.recordSeen(this, result)
 
+        // A reel player outside the Reels/Home/Explore tabs is a reel someone sent you.
+        val sharedReel = result.screen != Screen.REELS && result.screen != Screen.HOME &&
+            result.screen != Screen.SEARCH && InstagramScreens.isReelViewer(root)
+        reels.setViewer(sharedReel, System.currentTimeMillis())
+
         if (Guard.isPaused(this) || !Guard.isBlocked(this, result.screen)) return
         val now = System.currentTimeMillis()
         if (now - lastBounceAt < COOLDOWN_MS) return
@@ -69,6 +78,36 @@ class FocusGuardService : AccessibilityService() {
         lastBounceAt = now
         recentBounces.addLast(now)
         bounce(root, result.screen)
+    }
+
+    /** Swiping from the reel you were sent to the next one: go back to the chat instead. */
+    private fun onScrolled(event: AccessibilityEvent) {
+        if (!Guard.limitSharedReels(this) || Guard.isPaused(this)) return
+        val source = try { event.source } catch (e: Exception) { null } ?: return
+        val bounds = android.graphics.Rect().also(source::getBoundsInScreen)
+        val screenHeight = resources.displayMetrics.heightPixels
+        val deltaY = if (android.os.Build.VERSION.SDK_INT >= 28) event.scrollDeltaY else 0
+        val now = System.currentTimeMillis()
+        val swiped = reels.onScroll(
+            sourceId = source.viewIdResourceName?.substringAfter(":id/"),
+            className = event.className?.toString(),
+            heightFraction = if (screenHeight > 0) bounds.height().toFloat() / screenHeight else 0f,
+            fromIndex = event.fromIndex,
+            deltaY = deltaY,
+            screenHeight = screenHeight,
+            now = now,
+        )
+        reels.lastPager?.takeIf { it != recordedPager }?.let {
+            recordedPager = it
+            Guard.recordReelPager(this, it)
+        }
+        if (!swiped || now - lastBounceAt < COOLDOWN_MS) return
+
+        lastBounceAt = now
+        reels.setViewer(false, now)
+        performGlobalAction(GLOBAL_ACTION_BACK)
+        Guard.recordBounce(this, "shared reel: swiped on, went back")
+        Toast.makeText(this, R.string.reel_toast, Toast.LENGTH_SHORT).show()
     }
 
     private fun bounce(root: UiNode, from: Screen) {

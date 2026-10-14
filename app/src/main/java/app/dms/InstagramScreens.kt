@@ -74,6 +74,19 @@ object InstagramScreens {
         return Result(selected?.second ?: Screen.OTHER, seen)
     }
 
+    /**
+     * True when Instagram's full-screen reel player is on screen (its views are named
+     * "clips_…"). Callers combine this with the tab: outside the Reels tab it means a
+     * reel someone sent you.
+     */
+    fun isReelViewer(root: UiNode): Boolean =
+        find(root) { node -> node.viewId?.let { isReelViewId(it) } == true } != null
+
+    internal fun isReelViewId(id: String): Boolean {
+        val lower = id.lowercase()
+        return "clips" in lower && lower !in TAB_IDS && "tab" !in lower && "share" !in lower
+    }
+
     /** The node to tap to get to Messages, or null if none is on screen. */
     fun findMessagesButton(root: UiNode): UiNode? {
         for (id in DM_BUTTON_IDS) {
