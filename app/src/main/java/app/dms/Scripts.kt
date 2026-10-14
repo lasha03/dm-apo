@@ -24,10 +24,75 @@ object Scripts {
         "div[role=\"button\"]:has(> div svg[aria-label=\"New post\"])",
     )
 
+    /**
+     * Makes the page feel like an app rather than a website: no tap flash, no text
+     * selection outside text fields, no scrollbars or overscroll, and no "Open app"
+     * / "Get the app" banners. Safe to run at document start and repeatedly.
+     * When [window.__dmsHideNav] is set it also removes the (emptied) nav bar itself.
+     */
+    val APP_FEEL = """
+        (function(){try{
+          if(window.__dmsApp)return;window.__dmsApp=1;
+          var css='*{-webkit-tap-highlight-color:transparent!important}'+
+            'html,body{overscroll-behavior:none}'+
+            'body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}'+
+            'input,textarea,[contenteditable],[contenteditable] *{-webkit-user-select:text!important;user-select:text!important;-webkit-touch-callout:default}'+
+            '::-webkit-scrollbar{display:none}';
+          var appLinks='a[href*="play.google.com"],a[href*="app.link"],a[href^="intent:"],a[href^="instagram:"]';
+          var bannerText=/^(open app|open instagram|use the app|get the app|open in app|switch to the app)$/i;
+          function style(){
+            if(document.getElementById('dms-app'))return;
+            var s=document.createElement('style');s.id='dms-app';s.textContent=css;
+            (document.head||document.documentElement).appendChild(s);
+          }
+          function hideBox(el,maxH){
+            for(var n=el,i=0;n&&n!==document.body&&i<8;n=n.parentElement,i++){
+              var cs=getComputedStyle(n);
+              if((cs.position==='fixed'||cs.position==='sticky')&&n.getBoundingClientRect().height<=maxH){
+                n.setAttribute('data-dms-hidden','1');n.style.setProperty('display','none','important');return;
+              }
+            }
+            el.style.setProperty('display','none','important');
+          }
+          // The bar is the largest small (<=120px) ancestor of the Explore/Reels link that holds
+          // no chat content. Anything bigger, or holding chats/text fields, is never touched.
+          function navBar(){
+            var ex=document.querySelector('a[href="/explore/"],a[href="/reels/"]');if(!ex)return null;
+            var best=null;
+            for(var n=ex.parentElement,i=0;n&&n!==document.body&&i<10;n=n.parentElement,i++){
+              if(n.getBoundingClientRect().height>120)break;
+              if(n.querySelector('textarea,input,[contenteditable],[role="textbox"],a[href^="/direct/t/"],main,[role="main"]'))break;
+              best=n;
+            }
+            return best;
+          }
+          function tidy(){try{
+            style();
+            document.querySelectorAll(appLinks).forEach(function(a){hideBox(a,160);});
+            document.querySelectorAll('a,button,[role="button"]').forEach(function(b){
+              if(bannerText.test((b.textContent||'').trim()))hideBox(b,160);
+            });
+            var bar=navBar();
+            if(bar){
+              if(window.__dmsHideNav){bar.setAttribute('data-dms-nav','1');bar.style.setProperty('display','none','important');}
+              else if(bar.getAttribute('data-dms-nav')){bar.removeAttribute('data-dms-nav');bar.style.removeProperty('display');}
+            }
+          }catch(e){}}
+          window.__dmsTidy=tidy;
+          style();
+          var t=0;
+          new MutationObserver(function(){if(t)return;t=setTimeout(function(){t=0;tidy();},300);})
+            .observe(document.documentElement,{childList:true,subtree:true});
+          if(document.readyState!=='loading')tidy();else document.addEventListener('DOMContentLoaded',tidy);
+        }catch(e){}})();
+    """.trimIndent()
+
     fun hideNav(enabled: Boolean): String {
         val rules = JSONArray(HIDE_NAV_SELECTORS).toString()
         return """
             (function(hide){try{
+              window.__dmsHideNav=hide;
+              if(window.__dmsTidy)window.__dmsTidy();
               var id='dms-hide-nav',s=document.getElementById(id);
               if(!hide){if(s)s.remove();return;}
               if(s)return;

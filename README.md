@@ -53,7 +53,7 @@ API, and nothing leaves the phone.
    - Install the Instagram app, log in with the same account, and leave its
      message notifications on. You never need to open it.
    - In Chrome, open instagram.com, log in, and allow notifications.
-2. In DMs, tap **⋮ → Message notifications → Turn on** and allow Notification
+2. Long-press the DMs icon → **Settings → Message notifications → Turn on** and allow Notification
    access for DMs.
 3. If Android says **"Restricted setting"** (Android 13+ does this for apps
    installed outside the Play Store), go to **App info → ⋮ → Allow restricted
@@ -67,7 +67,7 @@ your inbox in DMs. So in Instagram's own settings, turn off everything except
 On Xiaomi/Redmi/POCO, also set **Autostart: on** and **Battery saver: No
 restrictions** for both DMs and Instagram, or MIUI/HyperOS may stop them.
 
-**Troubleshooting:** ⋮ → Message notifications shows whether the relay is
+**Troubleshooting:** Settings → Message notifications shows whether the relay is
 running, how many Instagram notifications it has seen and what it did with the
 last one. If it says access is on but the relay isn't running (common on Xiaomi
 after an update), switch DMs off and on again under Notification access and
@@ -75,21 +75,27 @@ set Autostart on for DMs.
 
 ## What it does
 
+- **Looks like an app, not a browser.** No toolbar, splash screen on launch, no
+  tap flashes, text selection (except in the message box), scrollbars or
+  overscroll glow, and Instagram's "Open app" banners are hidden. **Settings**
+  live in the long-press menu of the app icon (also reachable from Android's
+  notification settings for DMs).
+
 - **DMs only.** `/direct`, login, 2FA, challenge and OAuth pages stay in the app
   (Facebook login too). The home feed, Explore and Reels send you back to the
   inbox. Posts, reels, stories and profiles that someone shares in a chat open in
   a separate full-screen viewer with a close button; closing it puts you back in
   the same chat. Everything else opens in your normal browser.
 - **Hides feed shortcuts.** CSS is injected to hide the Home, Explore, Reels and
-  Create links (toggle it in the ⋮ menu). If Instagram changes its markup the
+  Create links (toggle it in Settings). If Instagram changes its markup the
   rules just stop matching; nothing breaks.
 - **Send photos/videos** from the gallery (multi-select when Instagram allows it)
   or straight from the camera.
 - **Voice messages** and **calls** (best effort): the mic/camera are only ever
   granted to `instagram.com` pages.
 - **Save media:** long-press a photo or video → *Save*. Files go to `Pictures/DMs`.
-- **Unread badge:** the count from the page title, e.g. `(3) Instagram`, is
-  shown next to the app name and in the recent-apps label.
+- **Unread count:** the count from the page title, e.g. `(3) Instagram`, is
+  shown in the recent-apps label.
 - Remembers your login, follows system dark mode, survives rotation without
   reloading, back button minimizes instead of closing, offline screen with
   Retry (and auto-retry when the connection comes back).

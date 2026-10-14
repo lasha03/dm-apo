@@ -2,11 +2,14 @@
 <resources>
     <string name="app_name">DMs</string>
     <string name="app_name_with_count">DMs (%1$d)</string>
-    <string name="unread_description">%1$d unread</string>
-    <string name="menu">Menu</string>
     <string name="menu_inbox">Inbox</string>
     <string name="menu_reload">Reload</string>
-    <string name="menu_hide_nav">Hide Home/Explore/Reels/Create</string>
+    <string name="menu_hide_nav_on">Hide feed shortcuts: On</string>
+    <string name="menu_hide_nav_off">Hide feed shortcuts: Off</string>
+    <string name="settings_title">DMs settings</string>
+    <string name="settings_hint">Settings: long-press the DMs app icon</string>
+    <string name="shortcut_settings">Settings</string>
+    <string name="shortcut_inbox">Inbox</string>
     <string name="menu_about">About &amp; limitations</string>
     <string name="menu_notifications">Message notifications</string>
     <string name="notif_service_label">DMs message notifications</string>
@@ -41,5 +44,5 @@
     <string name="mic_denied">Microphone is off for DMs. Turn it on in Settings › Apps › DMs › Permissions.</string>
     <string name="camera_denied">Camera is off for DMs. Turn it on in Settings › Apps › DMs › Permissions.</string>
     <string name="camera_off_gallery_only">Camera permission is off, so only the gallery is available</string>
-    <string name="about_text">DMs is a locked-down browser for instagram.com/direct.\n\nKnown limitations:\n• Notifications need the Instagram app or Chrome to receive them first (⋮ › Message notifications).\n• View-once photos/videos aren\'t sent to Instagram\'s website, so they say \"open in the app\".\n• Calling depends on what Instagram\'s mobile website offers.\n• Instagram website changes can break the nav-hiding.\n\nLong-press a photo or video to save it to Pictures/DMs.</string>
+    <string name="about_text">DMs is a locked-down browser for instagram.com/direct.\n\nKnown limitations:\n• Notifications need the Instagram app or Chrome to receive them first (⋮ › Message notifications).\n• View-once photos/videos aren\'t sent to Instagram\'s website, so they say \"open in the app\".\n• Calling depends on what Instagram\'s mobile website offers.\n• Instagram website changes can break the nav-hiding.\n\nLong-press a photo or video to save it to Pictures/DMs.\n\nSettings are in the menu you get by long-pressing the DMs app icon.</string>
 </resources>

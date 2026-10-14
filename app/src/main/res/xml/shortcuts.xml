@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_settings"
+        android:shortcutId="settings"
+        android:shortcutShortLabel="@string/shortcut_settings">
+        <intent
+            android:action="app.dms.SETTINGS"
+            android:targetClass="app.dms.MainActivity"
+            android:targetPackage="app.dms" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_inbox"
+        android:shortcutId="inbox"
+        android:shortcutShortLabel="@string/shortcut_inbox">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="https://www.instagram.com/direct/inbox/"
+            android:targetClass="app.dms.MainActivity"
+            android:targetPackage="app.dms" />
+    </shortcut>
+</shortcuts>

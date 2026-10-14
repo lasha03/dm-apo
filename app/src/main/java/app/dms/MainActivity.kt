@@ -27,10 +27,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
-import android.widget.ImageButton
-import android.widget.PopupMenu
 import android.widget.ProgressBar
-import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -42,7 +39,10 @@ class MainActivity : BaseWebActivity() {
 
     private lateinit var progress: ProgressBar
     private lateinit var offlineView: View
-    private lateinit var unreadBadge: TextView
+    private lateinit var splash: View
+    private var hideNavScript: androidx.webkit.ScriptHandler? = null
+    private val showProgress = Runnable { progress.isVisible = true }
+    private val hideSplashRunnable = Runnable { hideSplash() }
     private lateinit var popupContainer: View
     private lateinit var popupHolder: FrameLayout
     private lateinit var prefs: SharedPreferences
@@ -76,7 +76,7 @@ class MainActivity : BaseWebActivity() {
 
         progress = findViewById(R.id.progress)
         offlineView = findViewById(R.id.offline)
-        unreadBadge = findViewById(R.id.unread_badge)
+        splash = findViewById(R.id.splash)
         popupContainer = findViewById(R.id.popup_container)
         popupHolder = findViewById(R.id.popup_holder)
         applySystemInsets(findViewById(R.id.content))
@@ -84,8 +84,8 @@ class MainActivity : BaseWebActivity() {
         initBase(findViewById(R.id.webview), findViewById(R.id.fullscreen))
         webView.webViewClient = MainClient()
         webView.webChromeClient = MainChrome()
+        hideNavScript = addDocumentStartScript(webView, Scripts.hideNav(hideNav))
 
-        findViewById<ImageButton>(R.id.menu_button).setOnClickListener(::showMenu)
         findViewById<View>(R.id.retry).setOnClickListener { retry() }
         findViewById<View>(R.id.popup_close).setOnClickListener { closePopup() }
 
@@ -97,12 +97,33 @@ class MainActivity : BaseWebActivity() {
 
         val restored = savedInstanceState != null && webView.restoreState(savedInstanceState) != null
         if (!restored) webView.loadUrl(deepLinkUrl(intent) ?: UrlPolicy.INBOX_URL)
+        if (savedInstanceState != null) splash.isVisible = false
+        splash.postDelayed(hideSplashRunnable, 8_000) // never get stuck on the splash
 
         registerNetworkCallback()
+        if (isSettingsIntent(intent)) showSettings() else maybeShowSettingsHint()
+    }
+
+    private fun hideSplash() {
+        if (!splash.isVisible) return
+        splash.removeCallbacks(hideSplashRunnable)
+        splash.animate().alpha(0f).setDuration(180).withEndAction { splash.isVisible = false }.start()
+    }
+
+    /** Launcher long-press shortcut, or "Additional settings in the app" in Android's notification settings. */
+    private fun isSettingsIntent(intent: Intent?) =
+        intent?.action == ACTION_SETTINGS || intent?.hasCategory(android.app.Notification.INTENT_CATEGORY_NOTIFICATION_PREFERENCES) == true
+
+    /** Settings moved off-screen to look like an app; say once where they went. */
+    private fun maybeShowSettingsHint() {
+        if (prefs.getBoolean(PREF_SETTINGS_HINT_SHOWN, false)) return
+        prefs.edit().putBoolean(PREF_SETTINGS_HINT_SHOWN, true).apply()
+        android.widget.Toast.makeText(this, R.string.settings_hint, android.widget.Toast.LENGTH_LONG).show()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        if (isSettingsIntent(intent)) showSettings()
         deepLinkUrl(intent)?.let {
             closePopup()
             webView.loadUrl(it)
@@ -195,6 +216,7 @@ class MainActivity : BaseWebActivity() {
     private fun injectPageScripts(view: WebView) {
         val host = view.url?.let { Uri.parse(it).host }
         if (!UrlPolicy.isPathRuledInstagramHost(host)) return
+        injectAppFeel(view)
         view.evaluateJavascript(Scripts.hideNav(hideNav), null)
         view.evaluateJavascript(Scripts.LINK_INTERCEPTOR, null)
     }
@@ -207,12 +229,16 @@ class MainActivity : BaseWebActivity() {
 
         override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
             loadHadError = false
-            progress.isVisible = true
+            // Only show the bar for slow loads; quick ones shouldn't flash it.
+            progress.removeCallbacks(showProgress)
+            progress.postDelayed(showProgress, 400)
         }
 
         override fun onPageFinished(view: WebView, url: String?) {
             if (!loadHadError) offlineView.isVisible = false
             injectPageScripts(view)
+            // Give Instagram a moment to draw the inbox before revealing it.
+            if (url != null && !url.startsWith("about:")) splash.postDelayed(hideSplashRunnable, 350)
         }
 
         // Instagram navigates with pushState, which never hits shouldOverrideUrlLoading.
@@ -236,6 +262,7 @@ class MainActivity : BaseWebActivity() {
                 ERROR_FAILED_SSL_HANDSHAKE, ERROR_UNKNOWN -> {
                     loadHadError = true
                     offlineView.isVisible = true
+                    hideSplash()
                 }
             }
         }
@@ -244,7 +271,10 @@ class MainActivity : BaseWebActivity() {
     private inner class MainChrome : BaseChromeClient() {
         override fun onProgressChanged(view: WebView, newProgress: Int) {
             progress.progress = newProgress
-            progress.isVisible = newProgress < 100
+            if (newProgress >= 100) {
+                progress.removeCallbacks(showProgress)
+                progress.isVisible = false
+            }
         }
 
         override fun onReceivedTitle(view: WebView, title: String?) = updateUnread(title)
@@ -466,9 +496,6 @@ class MainActivity : BaseWebActivity() {
         val count = TitleParser.unreadCount(title)
         if (count == unreadCount) return
         unreadCount = count
-        unreadBadge.isVisible = count > 0
-        unreadBadge.text = if (count > 99) "99+" else count.toString()
-        unreadBadge.contentDescription = getString(R.string.unread_description, count)
         val label = if (count > 0) getString(R.string.app_name_with_count, count) else getString(R.string.app_name)
         @Suppress("DEPRECATION")
         setTaskDescription(ActivityManager.TaskDescription(label))
@@ -498,34 +525,37 @@ class MainActivity : BaseWebActivity() {
 
     // ---- Menu ------------------------------------------------------------------------------
 
-    private fun showMenu(anchor: View) {
-        val menu = PopupMenu(this, anchor)
-        menu.menu.add(0, MENU_INBOX, 0, R.string.menu_inbox)
-        menu.menu.add(0, MENU_RELOAD, 1, R.string.menu_reload)
-        menu.menu.add(0, MENU_HIDE_NAV, 2, R.string.menu_hide_nav).apply {
-            isCheckable = true
-            isChecked = hideNav
-        }
-        menu.menu.add(0, MENU_NOTIFICATIONS, 3, R.string.menu_notifications)
-        menu.menu.add(0, MENU_ABOUT, 4, R.string.menu_about)
-        menu.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                MENU_INBOX -> webView.loadUrl(UrlPolicy.INBOX_URL)
-                MENU_RELOAD -> retry()
-                MENU_HIDE_NAV -> {
-                    prefs.edit().putBoolean(PREF_HIDE_NAV, !hideNav).apply()
-                    injectPageScripts(webView)
+    private fun showSettings() {
+        val items = arrayOf(
+            getString(R.string.menu_inbox),
+            getString(R.string.menu_reload),
+            getString(if (hideNav) R.string.menu_hide_nav_on else R.string.menu_hide_nav_off),
+            getString(R.string.menu_notifications),
+            getString(R.string.menu_about),
+        )
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_title)
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> webView.loadUrl(UrlPolicy.INBOX_URL)
+                    1 -> retry()
+                    2 -> setHideNav(!hideNav)
+                    3 -> showNotificationSetup()
+                    4 -> AlertDialog.Builder(this)
+                        .setTitle(R.string.app_name)
+                        .setMessage(R.string.about_text)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
                 }
-                MENU_NOTIFICATIONS -> showNotificationSetup()
-                MENU_ABOUT -> AlertDialog.Builder(this)
-                    .setTitle(R.string.app_name)
-                    .setMessage(R.string.about_text)
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show()
             }
-            true
-        }
-        menu.show()
+            .show()
+    }
+
+    private fun setHideNav(enabled: Boolean) {
+        prefs.edit().putBoolean(PREF_HIDE_NAV, enabled).apply()
+        hideNavScript?.remove()
+        hideNavScript = addDocumentStartScript(webView, Scripts.hideNav(enabled))
+        injectPageScripts(webView)
     }
 
     // ---- Message notifications (notification-access relay) ---------------------------------
@@ -602,11 +632,8 @@ class MainActivity : BaseWebActivity() {
         var isInForeground = false
             private set
 
+        const val ACTION_SETTINGS = "app.dms.SETTINGS"
         private const val PREF_HIDE_NAV = "hide_nav"
-        private const val MENU_INBOX = 1
-        private const val MENU_RELOAD = 2
-        private const val MENU_HIDE_NAV = 3
-        private const val MENU_NOTIFICATIONS = 4
-        private const val MENU_ABOUT = 5
+        private const val PREF_SETTINGS_HINT_SHOWN = "settings_hint_shown"
     }
 }

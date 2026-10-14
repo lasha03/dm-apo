@@ -113,6 +113,8 @@ class ViewerActivity : BaseWebActivity() {
             progress.isVisible = true
         }
 
+        override fun onPageFinished(view: WebView, url: String?) = injectAppFeel(view)
+
         override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
             val uri = url?.let(Uri::parse) ?: return
             if (uri.scheme != "https" && uri.scheme != "http") return

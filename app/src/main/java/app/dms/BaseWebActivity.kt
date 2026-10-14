@@ -28,6 +28,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.webkit.ScriptHandler
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
@@ -93,6 +94,12 @@ abstract class BaseWebActivity : ComponentActivity() {
             setAcceptThirdPartyCookies(wv, true)
         }
 
+        // Look like an app, not a browser.
+        wv.isVerticalScrollBarEnabled = false
+        wv.isHorizontalScrollBarEnabled = false
+        wv.overScrollMode = View.OVER_SCROLL_NEVER
+        addDocumentStartScript(wv, Scripts.APP_FEEL)
+
         wv.setOnTouchListener { _, ev ->
             if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
                 lastTouchX = ev.x
@@ -107,13 +114,29 @@ abstract class BaseWebActivity : ComponentActivity() {
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             // Only Instagram pages can talk to the app.
-            WebViewCompat.addWebMessageListener(
-                wv, "DMsBridge",
-                setOf("https://www.instagram.com", "https://instagram.com", "https://m.instagram.com"),
-            ) { _, message, _, isMainFrame, _ ->
+            WebViewCompat.addWebMessageListener(wv, "DMsBridge", INSTAGRAM_ORIGINS) { _, message, _, isMainFrame, _ ->
                 if (isMainFrame) message.data?.let { onBridgeMessage(it) }
             }
         }
+    }
+
+    /**
+     * Runs [script] on Instagram pages before they render (no flash of unstyled UI).
+     * Returns null where the WebView is too old; callers also inject after load.
+     */
+    protected fun addDocumentStartScript(wv: WebView, script: String): ScriptHandler? {
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) return null
+        return try {
+            WebViewCompat.addDocumentStartJavaScript(wv, script, INSTAGRAM_ORIGINS)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** Fallback for WebViews without document-start scripts; harmless to repeat. */
+    protected fun injectAppFeel(wv: WebView) {
+        val host = wv.url?.let { Uri.parse(it).host }
+        if (UrlPolicy.isPathRuledInstagramHost(host)) wv.evaluateJavascript(Scripts.APP_FEEL, null)
     }
 
     private fun cleanUserAgent(ua: String): String =
@@ -393,4 +416,9 @@ abstract class BaseWebActivity : ComponentActivity() {
     }
 
     protected fun toast(res: Int) = Toast.makeText(this, res, Toast.LENGTH_SHORT).show()
+
+    companion object {
+        private val INSTAGRAM_ORIGINS =
+            setOf("https://www.instagram.com", "https://instagram.com", "https://m.instagram.com")
+    }
 }
