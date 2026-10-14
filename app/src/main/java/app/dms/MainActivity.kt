@@ -113,6 +113,7 @@ class MainActivity : BaseWebActivity() {
         super.onResume()
         isInForeground = true
         NotificationRelayService.clearAll(this)
+        NotificationRelayService.rebind(this)
     }
 
     override fun onPause() {
@@ -532,7 +533,16 @@ class MainActivity : BaseWebActivity() {
     private fun showNotificationSetup() {
         val access = NotificationRelayService.isAccessGranted(this)
         val post = NotificationRelayService.canPost(this)
-        val status = getString(if (access && post) R.string.notif_status_on else R.string.notif_status_off)
+        val last = NotificationRelayService.lastRelayedAt(this)
+        val status = when {
+            !access -> getString(R.string.notif_status_off)
+            !post -> getString(R.string.notif_status_blocked)
+            last == 0L -> getString(R.string.notif_status_on)
+            else -> getString(R.string.notif_status_on) + "\n" + getString(
+                R.string.notif_status_last,
+                android.text.format.DateUtils.getRelativeTimeSpanString(last),
+            )
+        }
         AlertDialog.Builder(this)
             .setTitle(R.string.menu_notifications)
             .setMessage(status + "\n\n" + getString(R.string.notif_setup_text))

@@ -29,11 +29,17 @@ import androidx.core.content.ContextCompat
  */
 class NotificationRelayService : NotificationListenerService() {
 
+    override fun onListenerConnected() {
+        prefs(this).edit().putLong(PREF_CONNECTED_AT, System.currentTimeMillis()).apply()
+        // Replace anything Instagram posted while we weren't running.
+        try { activeNotifications?.forEach(::onNotificationPosted) } catch (e: Exception) {}
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        val source = sourceOf(sbn) ?: return
+        sourceOf(sbn) ?: return
         val n = sbn.notification
-        if (n.category == Notification.CATEGORY_CALL) return
-        if (source == Source.INSTAGRAM_APP && !isInstagramDm(n)) return
+        // Calls and progress notifications ("uploading…") are left to Instagram.
+        if (isCall(n) || n.flags and Notification.FLAG_ONGOING_EVENT != 0) return
 
         if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) {
             // Instagram's "N new messages" bundle header: drop it, we post our own.
@@ -44,9 +50,17 @@ class NotificationRelayService : NotificationListenerService() {
         val content = extract(n) ?: return
         if (!MainActivity.isInForeground) post(sbn.key, content)
         dismiss(sbn)
+        prefs(this).edit().putLong(PREF_LAST_RELAYED_AT, System.currentTimeMillis()).apply()
     }
 
     private enum class Source { INSTAGRAM_APP, BROWSER }
+
+    /**
+     * Every Instagram notification except calls is relayed: guessing which ones are
+     * DMs proved unreliable, and the setup asks you to turn the rest off in Instagram.
+     */
+    private fun isCall(n: Notification): Boolean =
+        n.category == Notification.CATEGORY_CALL || "call" in n.channelId.orEmpty().lowercase()
 
     private fun sourceOf(sbn: StatusBarNotification): Source? = when (sbn.packageName) {
         in INSTAGRAM_PACKAGES -> Source.INSTAGRAM_APP
@@ -63,13 +77,6 @@ class NotificationRelayService : NotificationListenerService() {
         ).any { extras.getCharSequence(it)?.contains("instagram.com", ignoreCase = true) == true }
     }
 
-    private fun isInstagramDm(n: Notification): Boolean {
-        val channel = n.channelId.orEmpty().lowercase()
-        if ("call" in channel) return false
-        return "direct" in channel ||
-            n.category == Notification.CATEGORY_MESSAGE ||
-            NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(n) != null
-    }
 
     private data class Content(val title: String, val text: String)
 
@@ -139,6 +146,21 @@ class NotificationRelayService : NotificationListenerService() {
             "com.sec.android.app.sbrowser", "com.microsoft.emmx", "com.brave.browser",
             "org.mozilla.firefox", "com.opera.browser",
         )
+
+        private const val PREF_CONNECTED_AT = "relay_connected_at"
+        private const val PREF_LAST_RELAYED_AT = "relay_last_at"
+
+        private fun prefs(context: Context) = context.getSharedPreferences("relay", Context.MODE_PRIVATE)
+
+        fun lastRelayedAt(context: Context): Long = prefs(context).getLong(PREF_LAST_RELAYED_AT, 0L)
+
+        /** Xiaomi and others sometimes stop listeners in the background; ask Android to reconnect. */
+        fun rebind(context: Context) {
+            if (!isAccessGranted(context)) return
+            try {
+                requestRebind(ComponentName(context, NotificationRelayService::class.java))
+            } catch (e: Exception) {}
+        }
 
         fun isAccessGranted(context: Context): Boolean =
             NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)

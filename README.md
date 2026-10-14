@@ -59,10 +59,16 @@ API, and nothing leaves the phone.
    installed outside the Play Store), go to **App info → ⋮ → Allow restricted
    settings** and try step 2 again.
 
-The DM notification from Instagram/Chrome is replaced by a DMs one (sender +
-message; hidden on the lock screen). Tapping it opens your inbox in DMs. Likes,
-comments and other Instagram notifications are left alone, so turn those off in
-Instagram if you don't want them. Call notifications are not touched.
+Every Instagram notification (except calls and upload progress) is replaced by
+a DMs one (sender + message; hidden on the lock screen), and tapping it opens
+your inbox in DMs. So in Instagram's own settings, turn off everything except
+**Messages** (profile → ☰ → Notifications).
+
+On Xiaomi/Redmi/POCO, also set **Autostart: on** and **Battery saver: No
+restrictions** for both DMs and Instagram, or MIUI/HyperOS may stop them.
+
+The Message notifications screen shows whether it's on and when it last
+relayed something, which helps when troubleshooting.
 
 ## What it does
 
