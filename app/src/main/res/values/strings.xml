@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DMs</string>
+    <string name="app_name_with_count">DMs (%1$d)</string>
+    <string name="unread_description">%1$d unread</string>
+    <string name="menu">Menu</string>
+    <string name="menu_inbox">Inbox</string>
+    <string name="menu_reload">Reload</string>
+    <string name="menu_hide_nav">Hide Home/Explore/Reels/Create</string>
+    <string name="menu_about">About &amp; limitations</string>
+    <string name="close">Close</string>
+    <string name="offline_title">You\'re offline</string>
+    <string name="offline_body">Check your connection and try again.</string>
+    <string name="retry">Retry</string>
+    <string name="choose_media">Send photo or video</string>
+    <string name="save_image">Save image</string>
+    <string name="save_video">Save video</string>
+    <string name="saving">Saving…</string>
+    <string name="saved">Saved to Pictures/DMs</string>
+    <string name="save_failed">Couldn\'t save this file</string>
+    <string name="save_streamed">This video is streamed and can\'t be saved</string>
+    <string name="storage_denied">Storage permission is needed to save on this Android version</string>
+    <string name="no_app_for_link">No app can open this link</string>
+    <string name="mic_denied">Microphone is off for DMs. Turn it on in Settings › Apps › DMs › Permissions.</string>
+    <string name="camera_denied">Camera is off for DMs. Turn it on in Settings › Apps › DMs › Permissions.</string>
+    <string name="camera_off_gallery_only">Camera permission is off, so only the gallery is available</string>
+    <string name="about_text">DMs is a locked-down browser for instagram.com/direct.\n\nKnown limitations:\n• No notifications while the app is closed (WebView can\'t receive push).\n• View-once photos/videos aren\'t sent to Instagram\'s website, so they say \"open in the app\".\n• Calling depends on what Instagram\'s mobile website offers.\n• Instagram website changes can break the nav-hiding.\n\nLong-press a photo or video to save it to Pictures/DMs.</string>
+</resources>
