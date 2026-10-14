@@ -67,8 +67,11 @@ your inbox in DMs. So in Instagram's own settings, turn off everything except
 On Xiaomi/Redmi/POCO, also set **Autostart: on** and **Battery saver: No
 restrictions** for both DMs and Instagram, or MIUI/HyperOS may stop them.
 
-The Message notifications screen shows whether it's on and when it last
-relayed something, which helps when troubleshooting.
+**Troubleshooting:** ⋮ → Message notifications shows whether the relay is
+running, how many Instagram notifications it has seen and what it did with the
+last one. If it says access is on but the relay isn't running (common on Xiaomi
+after an update), switch DMs off and on again under Notification access and
+set Autostart on for DMs.
 
 ## What it does
 

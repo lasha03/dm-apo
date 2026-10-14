@@ -533,15 +533,35 @@ class MainActivity : BaseWebActivity() {
     private fun showNotificationSetup() {
         val access = NotificationRelayService.isAccessGranted(this)
         val post = NotificationRelayService.canPost(this)
-        val last = NotificationRelayService.lastRelayedAt(this)
-        val status = when {
-            !access -> getString(R.string.notif_status_off)
-            !post -> getString(R.string.notif_status_blocked)
-            last == 0L -> getString(R.string.notif_status_on)
-            else -> getString(R.string.notif_status_on) + "\n" + getString(
-                R.string.notif_status_last,
-                android.text.format.DateUtils.getRelativeTimeSpanString(last),
+        val running = NotificationRelayService.isRunning
+        val diag = NotificationRelayService.diagnostics(this)
+        val status = buildString {
+            append(
+                getString(
+                    when {
+                        !access -> R.string.notif_status_off
+                        !post -> R.string.notif_status_blocked
+                        !running -> R.string.notif_status_not_running
+                        else -> R.string.notif_status_on
+                    }
+                )
             )
+            if (access) {
+                append("\n\n")
+                append(getString(R.string.notif_diag_running, getString(if (running) R.string.yes else R.string.no)))
+                append("\n")
+                append(getString(R.string.notif_diag_seen, diag.seen))
+                if (diag.lastSeenAt > 0L) {
+                    append("\n")
+                    append(
+                        getString(
+                            R.string.notif_diag_last,
+                            android.text.format.DateUtils.getRelativeTimeSpanString(diag.lastSeenAt),
+                            diag.lastOutcome.orEmpty(),
+                        )
+                    )
+                }
+            }
         }
         AlertDialog.Builder(this)
             .setTitle(R.string.menu_notifications)

@@ -30,27 +30,48 @@ import androidx.core.content.ContextCompat
 class NotificationRelayService : NotificationListenerService() {
 
     override fun onListenerConnected() {
+        isRunning = true
         prefs(this).edit().putLong(PREF_CONNECTED_AT, System.currentTimeMillis()).apply()
         // Replace anything Instagram posted while we weren't running.
         try { activeNotifications?.forEach(::onNotificationPosted) } catch (e: Exception) {}
     }
 
+    override fun onListenerDisconnected() {
+        isRunning = false
+        rebind(this)
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         sourceOf(sbn) ?: return
+        val outcome = handle(sbn)
+        // Diagnostics only: a counter and an outcome code, never notification content.
+        val p = prefs(this)
+        p.edit()
+            .putInt(PREF_SEEN_COUNT, p.getInt(PREF_SEEN_COUNT, 0) + 1)
+            .putLong(PREF_LAST_SEEN_AT, System.currentTimeMillis())
+            .putString(PREF_LAST_OUTCOME, outcome)
+            .apply()
+    }
+
+    private fun handle(sbn: StatusBarNotification): String {
         val n = sbn.notification
         // Calls and progress notifications ("uploading…") are left to Instagram.
-        if (isCall(n) || n.flags and Notification.FLAG_ONGOING_EVENT != 0) return
+        if (isCall(n)) return "left alone (call)"
+        if (n.flags and Notification.FLAG_ONGOING_EVENT != 0) return "left alone (ongoing)"
 
         if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) {
             // Instagram's "N new messages" bundle header: drop it, we post our own.
-            dismiss(sbn)
-            return
+            return dismiss(sbn) ?: "removed summary"
         }
 
         val content = extract(n) ?: Content(getString(R.string.app_name), getString(R.string.notif_new_message))
-        if (!MainActivity.isInForeground) post(sbn.key, content)
-        dismiss(sbn)
-        prefs(this).edit().putLong(PREF_LAST_RELAYED_AT, System.currentTimeMillis()).apply()
+        val posted = MainActivity.isInForeground || post(sbn.key, content)
+        val dismissError = dismiss(sbn)
+        return when {
+            !posted -> "couldn't post (DMs notifications blocked?)"
+            dismissError != null -> "relayed, but $dismissError"
+            else -> "relayed"
+        }
     }
 
     private enum class Source { INSTAGRAM_APP, BROWSER }
@@ -96,8 +117,8 @@ class NotificationRelayService : NotificationListenerService() {
         return Content(title.orEmpty().ifBlank { getString(R.string.app_name) }, body.orEmpty())
     }
 
-    private fun post(key: String, content: Content) {
-        if (!canPost(this)) return
+    private fun post(key: String, content: Content): Boolean {
+        if (!canPost(this)) return false
         ensureChannel(this)
         val open = PendingIntent.getActivity(
             this, 0,
@@ -123,16 +144,23 @@ class NotificationRelayService : NotificationListenerService() {
             .setAutoCancel(true)
             .setContentIntent(open)
             .build()
-        try {
+        return try {
             NotificationManagerCompat.from(this).notify(TAG, key.hashCode(), notification)
+            true
         } catch (e: SecurityException) {
-            // Notification permission was revoked.
+            false // Notification permission was revoked.
         }
     }
 
-    private fun dismiss(sbn: StatusBarNotification) {
-        if (!sbn.isClearable) return
-        try { cancelNotification(sbn.key) } catch (e: Exception) {}
+    /** Removes Instagram's original. Returns an error description, or null on success. */
+    private fun dismiss(sbn: StatusBarNotification): String? {
+        if (!sbn.isClearable) return "original can't be cleared"
+        return try {
+            cancelNotification(sbn.key)
+            null
+        } catch (e: Exception) {
+            "couldn't remove original"
+        }
     }
 
     companion object {
@@ -148,11 +176,24 @@ class NotificationRelayService : NotificationListenerService() {
         )
 
         private const val PREF_CONNECTED_AT = "relay_connected_at"
-        private const val PREF_LAST_RELAYED_AT = "relay_last_at"
+        private const val PREF_SEEN_COUNT = "relay_seen_count"
+        private const val PREF_LAST_SEEN_AT = "relay_last_seen_at"
+        private const val PREF_LAST_OUTCOME = "relay_last_outcome"
+
+        /** True while Android has the listener connected (same process as the UI). */
+        @Volatile
+        var isRunning = false
+            private set
+
+        data class Diagnostics(val seen: Int, val lastSeenAt: Long, val lastOutcome: String?)
+
+        fun diagnostics(context: Context): Diagnostics {
+            val p = prefs(context)
+            return Diagnostics(p.getInt(PREF_SEEN_COUNT, 0), p.getLong(PREF_LAST_SEEN_AT, 0L), p.getString(PREF_LAST_OUTCOME, null))
+        }
 
         private fun prefs(context: Context) = context.getSharedPreferences("relay", Context.MODE_PRIVATE)
 
-        fun lastRelayedAt(context: Context): Long = prefs(context).getLong(PREF_LAST_RELAYED_AT, 0L)
 
         /** Xiaomi and others sometimes stop listeners in the background; ask Android to reconnect. */
         fun rebind(context: Context) {
