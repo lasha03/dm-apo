@@ -141,7 +141,10 @@ abstract class BaseWebActivity : ComponentActivity() {
             "http", "https" -> null
             null, "about", "blob", "data", "javascript" -> false
             "intent" -> { openIntentUri(uri.toString(), onFallback); true }
-            else -> { openExternal(uri); true }
+            else -> {
+                if (!UrlPolicy.isMetaAppLink(uri.scheme, null)) openExternal(uri)
+                true
+            }
         }
     }
 
@@ -167,14 +170,22 @@ abstract class BaseWebActivity : ComponentActivity() {
     private fun openIntentUri(raw: String, onFallback: (Uri) -> Unit) {
         val intent = try { Intent.parseUri(raw, Intent.URI_INTENT_SCHEME) } catch (e: Exception) { return }
         val fallback = intent.getStringExtra("browser_fallback_url")
+        val fb = fallback?.let(Uri::parse)?.takeIf { it.scheme == "https" || it.scheme == "http" }
+        val targetsMetaApp = UrlPolicy.isMetaAppLink(intent.scheme, intent.`package`) ||
+            UrlPolicy.isMetaAppLink(intent.selector?.scheme, intent.selector?.`package`) ||
+            UrlPolicy.isInstagramHost(intent.data?.host)
+        if (targetsMetaApp) {
+            // Stay in DMs: use the web version if the page offered one, else ignore.
+            fb?.let(onFallback)
+            return
+        }
         intent.addCategory(Intent.CATEGORY_BROWSABLE)
         intent.component = null
         intent.selector = null
         try {
             startActivity(intent)
         } catch (e: Exception) {
-            val fb = fallback?.let(Uri::parse)
-            if (fb != null && (fb.scheme == "https" || fb.scheme == "http")) onFallback(fb)
+            fb?.let(onFallback)
         }
     }
 

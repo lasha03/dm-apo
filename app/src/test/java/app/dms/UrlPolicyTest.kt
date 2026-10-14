@@ -51,6 +51,14 @@ class UrlPolicyTest {
         assertEquals(ViewerAction.EXTERNAL, UrlPolicy.decideInViewer("example.com", "/"))
     }
 
+    @Test fun neverHandsOffToMetaApps() {
+        assertEquals(true, UrlPolicy.isMetaAppLink("instagram", null))
+        assertEquals(true, UrlPolicy.isMetaAppLink("intent", "com.instagram.android"))
+        assertEquals(true, UrlPolicy.isMetaAppLink(null, "com.facebook.katana"))
+        assertEquals(false, UrlPolicy.isMetaAppLink("mailto", null))
+        assertEquals(false, UrlPolicy.isMetaAppLink("intent", "com.google.android.youtube"))
+    }
+
     @Test fun unreadCountFromTitle() {
         assertEquals(3, TitleParser.unreadCount("(3) Instagram"))
         assertEquals(12, TitleParser.unreadCount(" (12) Inbox • Direct"))

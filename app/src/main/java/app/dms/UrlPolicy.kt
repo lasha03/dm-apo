@@ -47,6 +47,18 @@ object UrlPolicy {
 
     private val LINK_SHIMS = setOf("l.instagram.com", "l.facebook.com", "lm.facebook.com")
 
+    private val META_APP_SCHEMES = setOf("instagram", "instagram-stories", "fb", "fb-messenger", "fbapi", "fbauth2")
+
+    /**
+     * True if this would hand off to the Instagram/Facebook/Messenger apps. The website
+     * tries this ("open in app") once the Instagram app is installed; DMs never allows it.
+     */
+    fun isMetaAppLink(scheme: String?, targetPackage: String?): Boolean {
+        if (scheme?.lowercase() in META_APP_SCHEMES) return true
+        val pkg = targetPackage?.lowercase() ?: return false
+        return pkg.startsWith("com.instagram.") || pkg.startsWith("com.facebook.")
+    }
+
     fun isPathRuledInstagramHost(host: String?): Boolean =
         host != null && host.lowercase() in PATH_RULED_HOSTS
 

@@ -47,7 +47,7 @@ class NotificationRelayService : NotificationListenerService() {
             return
         }
 
-        val content = extract(n) ?: return
+        val content = extract(n) ?: Content(getString(R.string.app_name), getString(R.string.notif_new_message))
         if (!MainActivity.isInForeground) post(sbn.key, content)
         dismiss(sbn)
         prefs(this).edit().putLong(PREF_LAST_RELAYED_AT, System.currentTimeMillis()).apply()
