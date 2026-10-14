@@ -6,19 +6,8 @@
         android:shortcutId="settings"
         android:shortcutShortLabel="@string/shortcut_settings">
         <intent
-            android:action="app.dms.SETTINGS"
-            android:targetClass="app.dms.MainActivity"
-            android:targetPackage="app.dms" />
-    </shortcut>
-    <shortcut
-        android:enabled="true"
-        android:icon="@drawable/ic_shortcut_inbox"
-        android:shortcutId="inbox"
-        android:shortcutShortLabel="@string/shortcut_inbox">
-        <intent
             android:action="android.intent.action.VIEW"
-            android:data="https://www.instagram.com/direct/inbox/"
-            android:targetClass="app.dms.MainActivity"
+            android:targetClass="app.dms.SetupActivity"
             android:targetPackage="app.dms" />
     </shortcut>
 </shortcuts>
