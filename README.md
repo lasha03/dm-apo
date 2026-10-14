@@ -41,6 +41,29 @@ The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 Install with `adb install -r app/build/outputs/apk/debug/app-debug.apk`, or
 copy the file to the phone and open it (with "Install unknown apps" allowed).
 
+## Message notifications (optional, recommended)
+
+A WebView can't receive Instagram's push notifications, but the Instagram app
+or Chrome can. DMs uses Android's **Notification access** (the official API
+smartwatch apps use) to turn their DM notifications into DMs notifications that
+open this app. There's no background service, no extra battery use, no private
+API, and nothing leaves the phone.
+
+1. Get Instagram notifications on the phone, using **one** of these:
+   - Install the Instagram app, log in with the same account, and leave its
+     message notifications on. You never need to open it.
+   - In Chrome, open instagram.com, log in, and allow notifications.
+2. In DMs, tap **⋮ → Message notifications → Turn on** and allow Notification
+   access for DMs.
+3. If Android says **"Restricted setting"** (Android 13+ does this for apps
+   installed outside the Play Store), go to **App info → ⋮ → Allow restricted
+   settings** and try step 2 again.
+
+The DM notification from Instagram/Chrome is replaced by a DMs one (sender +
+message; hidden on the lock screen). Tapping it opens your inbox in DMs. Likes,
+comments and other Instagram notifications are left alone, so turn those off in
+Instagram if you don't want them. Call notifications are not touched.
+
 ## What it does
 
 - **DMs only.** `/direct`, login, 2FA, challenge and OAuth pages stay in the app
@@ -65,8 +88,11 @@ copy the file to the phone and open it (with "Install unknown apps" allowed).
 
 ## Known limitations
 
-- **No push notifications while the app is closed.** A WebView can't receive
-  Instagram's push notifications; you only see new messages while it's open.
+- **No push notifications on its own.** A WebView can't receive Instagram's
+  push notifications. Turn on *Message notifications* (above) to get them
+  through the Instagram app or Chrome. Tapping one opens the inbox, not the
+  specific chat, because Android doesn't let other apps read where the original
+  notification would have led.
 - **View-once photos/videos** show "open the Instagram app" because Instagram's
   servers don't send view-once media to the website at all. There is nothing in
   the page for a WebView to display, so this app can't open them.

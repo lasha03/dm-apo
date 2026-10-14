@@ -13,7 +13,9 @@ import android.net.Network
 import android.net.Uri
 import android.os.Bundle
 import android.os.Message
+import android.os.Build
 import android.provider.MediaStore
+import android.provider.Settings
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.MimeTypeMap
@@ -105,6 +107,17 @@ class MainActivity : BaseWebActivity() {
             closePopup()
             webView.loadUrl(it)
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        isInForeground = true
+        NotificationRelayService.clearAll(this)
+    }
+
+    override fun onPause() {
+        isInForeground = false
+        super.onPause()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -492,7 +505,8 @@ class MainActivity : BaseWebActivity() {
             isCheckable = true
             isChecked = hideNav
         }
-        menu.menu.add(0, MENU_ABOUT, 3, R.string.menu_about)
+        menu.menu.add(0, MENU_NOTIFICATIONS, 3, R.string.menu_notifications)
+        menu.menu.add(0, MENU_ABOUT, 4, R.string.menu_about)
         menu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 MENU_INBOX -> webView.loadUrl(UrlPolicy.INBOX_URL)
@@ -501,6 +515,7 @@ class MainActivity : BaseWebActivity() {
                     prefs.edit().putBoolean(PREF_HIDE_NAV, !hideNav).apply()
                     injectPageScripts(webView)
                 }
+                MENU_NOTIFICATIONS -> showNotificationSetup()
                 MENU_ABOUT -> AlertDialog.Builder(this)
                     .setTitle(R.string.app_name)
                     .setMessage(R.string.about_text)
@@ -512,11 +527,56 @@ class MainActivity : BaseWebActivity() {
         menu.show()
     }
 
+    // ---- Message notifications (notification-access relay) ---------------------------------
+
+    private fun showNotificationSetup() {
+        val access = NotificationRelayService.isAccessGranted(this)
+        val post = NotificationRelayService.canPost(this)
+        val status = getString(if (access && post) R.string.notif_status_on else R.string.notif_status_off)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.menu_notifications)
+            .setMessage(status + "\n\n" + getString(R.string.notif_setup_text))
+            .setPositiveButton(R.string.notif_open_access) { _, _ -> openNotificationAccess() }
+            .setNeutralButton(R.string.notif_app_info) { _, _ ->
+                startSettings(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun openNotificationAccess() {
+        val perms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            listOf(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            emptyList()
+        }
+        withPermissions(perms) {
+            if (!NotificationRelayService.canPost(this)) toast(R.string.notif_permission_denied)
+            NotificationRelayService.ensureChannel(this)
+            if (!startSettings(NotificationRelayService.accessSettingsIntent(this))) {
+                startSettings(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            }
+        }
+    }
+
+    private fun startSettings(intent: Intent): Boolean = try {
+        startActivity(intent)
+        true
+    } catch (e: Exception) {
+        false
+    }
+
     companion object {
+        /** Read by the notification relay so it stays quiet while the inbox is on screen. */
+        @Volatile
+        var isInForeground = false
+            private set
+
         private const val PREF_HIDE_NAV = "hide_nav"
         private const val MENU_INBOX = 1
         private const val MENU_RELOAD = 2
         private const val MENU_HIDE_NAV = 3
-        private const val MENU_ABOUT = 4
+        private const val MENU_NOTIFICATIONS = 4
+        private const val MENU_ABOUT = 5
     }
 }
