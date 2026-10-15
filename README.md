@@ -65,8 +65,9 @@ at zero you're sent back to Messages and they stay blocked until midnight.
 - **Limited to 10 minutes a day (each can be switched off):** Home feed, Reels
   tab, Explore/Search tab. After that, opening any of them sends you back to
   Messages.
-- **Shared reels:** a reel someone sends you plays normally, but swiping on to
-  the next reel sends you back to the chat (can be switched off).
+- **Shared reels:** a reel someone sends you always plays. Swiping on to more
+  reels uses the daily 10 minutes; after that it sends you back to the chat
+  (can be switched off).
 - **Still works:** everything in Messages, plus posts, stories and profiles
   that people send you in a chat, your own profile, and settings.
 

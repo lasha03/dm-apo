@@ -29,7 +29,7 @@
     <string name="reel_toast">Only the reel you were sent 🙂</string>
 
     <string name="section_tips">Tips</string>
-    <string name="tips">• Hide the Instagram icon (put it in a folder) and open DMs instead.\n• Reels people send you still open. Swipe to the next one and you\'re sent back to the chat (switch above).\n• Xiaomi/Redmi/POCO: Settings › Apps › Manage apps › DMs: Autostart ON, Battery saver: No restrictions. Otherwise the system may switch the guard off.\n• You get 10 minutes a day on the feed, Reels and Explore. Only time on those screens counts; after that they send you back to Messages until tomorrow.\n• Settings are also in the long-press menu of the DMs icon.</string>
+    <string name="tips">• Hide the Instagram icon (put it in a folder) and open DMs instead.\n• Reels people send you always open. Swiping on to more uses the 10 minutes; after that you\'re sent back to the chat.\n• Xiaomi/Redmi/POCO: Settings › Apps › Manage apps › DMs: Autostart ON, Battery saver: No restrictions. Otherwise the system may switch the guard off.\n• You get 10 minutes a day on the feed, Reels and Explore. Only time on those screens counts; after that they send you back to Messages until tomorrow.\n• Settings are also in the long-press menu of the DMs icon.</string>
 
     <string name="section_status">Status (for troubleshooting)</string>
     <string name="diagnostics">Guard running: %1$s\nLast Instagram screen: %2$s (%3$s)\nTabs seen: %4$s\nTimes sent back: %5$d\nLast: %6$s\nReel player seen: %7$s</string>
