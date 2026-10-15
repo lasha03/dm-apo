@@ -1,10 +1,11 @@
 # DMs
 
-**The real Instagram app, but only your messages.**
+**The real Instagram app, but (mostly) only your messages.**
 
 DMs is a small Android app that keeps the official Instagram app on Messages.
-When the Home feed, Reels or Explore/Search tab opens, it taps Instagram's own
-Messages button for you, so you land back in your inbox. You chat in the real
+After 10 minutes a day on the Home feed, Reels or Explore/Search, opening them
+makes it tap Instagram's own Messages button for you, so you land back in your
+inbox. You chat in the real
 app, with replies, photos, voice messages, GIFs, calls, view-once media and
 Instagram's own notifications all working normally.
 
@@ -50,20 +51,20 @@ committed debug key (`keystore/debug.keystore`).
 Settings (which tabs to block) are in the DMs app; you can also reach them by
 long-pressing the DMs icon → **Settings**.
 
-## 10 minutes of full Instagram a day
+## 10 minutes a day
 
-Long-press the DMs icon → **Full Instagram** (or use the button in DMs) to
-unlock everything. Only time spent on the feed, Reels, Explore and swiping
-through shared reels counts against the 10 minutes; chatting while unlocked is
-free. You get a heads-up at 1 minute left. When time's up you're sent back to
-Messages and it stays locked until tomorrow. If you leave Instagram for 10
-minutes while unlocked, it locks itself again (unused time is kept). Tap
-**Lock again** to end early.
+Every day you get **10 minutes** on the Home feed, Reels and Explore (and
+swiping through reels people send you). While time is left, those screens just
+work, and a toast shows how much is left when you open one. Only time actually
+spent on them counts; chatting never does. You get a heads-up at 1 minute left;
+at zero you're sent back to Messages and they stay blocked until midnight.
+**Lock the rest of today** in DMs spends what's left if you'd rather have none.
 
 ## What's blocked and what isn't
 
-- **Blocked (each can be switched off):** Home feed, Reels tab, Explore/Search
-  tab. Opening any of them sends you back to Messages.
+- **Limited to 10 minutes a day (each can be switched off):** Home feed, Reels
+  tab, Explore/Search tab. After that, opening any of them sends you back to
+  Messages.
 - **Shared reels:** a reel someone sends you plays normally, but swiping on to
   the next reel sends you back to the chat (can be switched off).
 - **Still works:** everything in Messages, plus posts, stories and profiles

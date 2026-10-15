@@ -11,7 +11,6 @@ import android.provider.Settings
 object Guard {
 
     private const val PREFS = "guard"
-    private const val KEY_UNLOCKED = "unlocked"
     private const val KEY_USAGE_DAY = "usage_day"
     private const val KEY_USAGE_MS = "usage_ms"
     private const val KEY_LAST_SCREEN = "last_screen"
@@ -65,18 +64,12 @@ object Guard {
         return updated.remainingMs(today())
     }
 
-    /** Full Instagram is on while unlocked and there's allowance left today. */
-    fun isUnlocked(context: Context): Boolean =
-        prefs(context).getBoolean(KEY_UNLOCKED, false) && remainingTodayMs(context) > 0
+    /** Feed, Reels and Explore work until today's 10 minutes are used up. */
+    fun hasAllowanceLeft(context: Context): Boolean = remainingTodayMs(context) > 0
 
-    /** Returns false if today's allowance is already used up. */
-    fun unlock(context: Context): Boolean {
-        if (remainingTodayMs(context) <= 0) return false
-        prefs(context).edit().putBoolean(KEY_UNLOCKED, true).apply()
-        return true
-    }
-
-    fun lock(context: Context) = prefs(context).edit().putBoolean(KEY_UNLOCKED, false).apply()
+    /** Spends the rest of today's allowance so everything stays blocked until tomorrow. */
+    fun lockForToday(context: Context) = prefs(context).edit()
+        .putString(KEY_USAGE_DAY, today()).putLong(KEY_USAGE_MS, DailyAllowance.LIMIT_MS).apply()
 
     /** "7:30" style. */
     fun formatRemaining(ms: Long): String {
@@ -84,15 +77,6 @@ object Guard {
         return "%d:%02d".format(s / 60, s % 60)
     }
 
-    fun openInstagramHome(context: Context): Boolean {
-        val intent = context.packageManager.getLaunchIntentForPackage(InstagramScreens.PACKAGE) ?: return false
-        return try {
-            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            true
-        } catch (e: Exception) {
-            false
-        }
-    }
 
     fun isInstagramInstalled(context: Context): Boolean = try {
         context.packageManager.getPackageInfo(InstagramScreens.PACKAGE, 0)

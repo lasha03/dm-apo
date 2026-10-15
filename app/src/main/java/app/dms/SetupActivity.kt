@@ -49,10 +49,7 @@ class SetupActivity : ComponentActivity() {
             if (!Guard.openInbox(this)) installButton.performClick()
         }
         pauseButton.setOnClickListener {
-            when {
-                Guard.isUnlocked(this) -> Guard.lock(this)
-                Guard.unlock(this) -> Guard.openInstagramHome(this)
-            }
+            Guard.lockForToday(this)
             refresh()
         }
 
@@ -81,27 +78,20 @@ class SetupActivity : ComponentActivity() {
         val installed = Guard.isInstagramInstalled(this)
         val enabled = Guard.isServiceEnabled(this)
         val running = Guard.isRunning
-        val unlocked = Guard.isUnlocked(this)
         val left = Guard.remainingTodayMs(this)
 
-        status.text = getString(
-            when {
-                !installed -> R.string.status_no_instagram
-                !enabled -> R.string.status_guard_off
-                !running -> R.string.status_not_running
-                unlocked -> R.string.status_unlocked
-                else -> R.string.status_ready
-            }
-        )
+        status.text = when {
+            !installed -> getString(R.string.status_no_instagram)
+            !enabled -> getString(R.string.status_guard_off)
+            !running -> getString(R.string.status_not_running)
+            left > 0 -> getString(R.string.status_ready_left, Guard.formatRemaining(left))
+            else -> getString(R.string.status_ready_none)
+        }
         installButton.isVisible = !installed
         enableButton.text = getString(if (enabled) R.string.guard_settings else R.string.enable_guard)
         pauseButton.isVisible = enabled
-        pauseButton.isEnabled = unlocked || left > 0
-        pauseButton.text = when {
-            unlocked -> getString(R.string.lock_again, Guard.formatRemaining(left))
-            left > 0 -> getString(R.string.use_full_instagram, Guard.formatRemaining(left))
-            else -> getString(R.string.no_time_left)
-        }
+        pauseButton.isEnabled = left > 0
+        pauseButton.text = getString(if (left > 0) R.string.lock_today else R.string.no_time_left)
 
         val d = Guard.diagnostics(this)
         diagnostics.text = getString(
