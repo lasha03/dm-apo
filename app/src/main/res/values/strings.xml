@@ -6,7 +6,7 @@
     <string name="status_no_instagram">Step 1: install the Instagram app and log in. You\'ll chat in the real app; DMs keeps it on Messages.</string>
     <string name="status_guard_off">Step 2: turn on the DMs focus guard. Tap the button below, find DMs (it may be under \"Downloaded apps\" or \"Installed services\") and switch it on.</string>
     <string name="status_not_running">⚠️ The focus guard is switched on, but Android hasn\'t started it. Switch DMs off and on again in Accessibility settings. On Xiaomi, also set Autostart ON for DMs (App info › Autostart).</string>
-    <string name="status_paused">⏸ Paused. Instagram works normally until you resume or the pause runs out.</string>
+    <string name="status_unlocked">🔓 Full Instagram is unlocked. Time on the feed, Reels and Explore counts against today\'s 10 minutes; chatting is free. It locks again when the time runs out or 10 minutes after you leave Instagram.</string>
     <string name="status_ready">✅ All set. Open DMs from your home screen to go straight to your messages.</string>
 
     <string name="install_instagram">Install Instagram</string>
@@ -22,11 +22,16 @@
     <string name="block_search">Explore &amp; Search</string>
     <string name="limit_shared_reels">Swiping past a reel someone sent you</string>
     <string name="reel_toast">Only the reel you were sent 🙂</string>
-    <string name="pause_guard">Pause for %1$d minutes</string>
-    <string name="resume_guard">Resume now</string>
+    <string name="use_full_instagram">Use full Instagram · %1$s left today</string>
+    <string name="lock_again">Lock again · %1$s left today</string>
+    <string name="no_time_left">No full Instagram time left today</string>
+    <string name="unlocked_toast">Full Instagram unlocked · %1$s left today</string>
+    <string name="one_minute_toast">1 minute of full Instagram left today</string>
+    <string name="time_up_toast">That\'s your 10 minutes for today. Back to Messages 💬</string>
+    <string name="shortcut_unlock">Full Instagram</string>
 
     <string name="section_tips">Tips</string>
-    <string name="tips">• Hide the Instagram icon (put it in a folder) and open DMs instead.\n• Reels people send you still open. Swipe to the next one and you\'re sent back to the chat (switch above).\n• Xiaomi/Redmi/POCO: Settings › Apps › Manage apps › DMs: Autostart ON, Battery saver: No restrictions. Otherwise the system may switch the guard off.\n• Settings are also in the long-press menu of the DMs icon.</string>
+    <string name="tips">• Hide the Instagram icon (put it in a folder) and open DMs instead.\n• Reels people send you still open. Swipe to the next one and you\'re sent back to the chat (switch above).\n• Xiaomi/Redmi/POCO: Settings › Apps › Manage apps › DMs: Autostart ON, Battery saver: No restrictions. Otherwise the system may switch the guard off.\n• Long-press the DMs icon for Settings and \"Full Instagram\" (your 10 minutes a day; only time on the feed, Reels and Explore counts).</string>
 
     <string name="section_status">Status (for troubleshooting)</string>
     <string name="diagnostics">Guard running: %1$s\nLast Instagram screen: %2$s (%3$s)\nTabs seen: %4$s\nTimes sent back: %5$d\nLast: %6$s\nReel player seen: %7$s</string>

@@ -47,8 +47,18 @@ committed debug key (`keystore/debug.keystore`).
 5. Optional: put the Instagram icon in a folder and use the DMs icon instead.
    It opens Instagram straight into Messages.
 
-Settings (which tabs to block, pause for 10 minutes) are in the DMs app; you
-can also reach them by long-pressing the DMs icon → **Settings**.
+Settings (which tabs to block) are in the DMs app; you can also reach them by
+long-pressing the DMs icon → **Settings**.
+
+## 10 minutes of full Instagram a day
+
+Long-press the DMs icon → **Full Instagram** (or use the button in DMs) to
+unlock everything. Only time spent on the feed, Reels, Explore and swiping
+through shared reels counts against the 10 minutes; chatting while unlocked is
+free. You get a heads-up at 1 minute left. When time's up you're sent back to
+Messages and it stays locked until tomorrow. If you leave Instagram for 10
+minutes while unlocked, it locks itself again (unused time is kept). Tap
+**Lock again** to end early.
 
 ## What's blocked and what isn't
 

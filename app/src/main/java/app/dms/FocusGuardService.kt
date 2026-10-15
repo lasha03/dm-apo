@@ -22,17 +22,33 @@ class FocusGuardService : AccessibilityService() {
     private val reels = ReelSwipeDetector()
     private var recordedPager: String? = null
 
+    // Daily allowance meter: runs only while full Instagram is unlocked.
+    private var meterRunning = false
+    private var lastInstagramSeenAt = 0L
+    private var warnedLastMinute = false
+
     private val check = Runnable {
         checkScheduled = false
         checkScreen()
     }
 
+    private val meter = object : Runnable {
+        override fun run() {
+            tickMeter()
+            if (meterRunning) handler.postDelayed(this, METER_MS)
+        }
+    }
+
     override fun onServiceConnected() {
         Guard.isRunning = true
+        lastInstagramSeenAt = System.currentTimeMillis()
+        ensureMeter()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.packageName != InstagramScreens.PACKAGE) return
+        lastInstagramSeenAt = System.currentTimeMillis()
+        ensureMeter()
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) onScrolled(event)
         // Throttle: Instagram fires many events (e.g. while videos play); check at most ~4x/second.
         if (!checkScheduled) {
@@ -46,12 +62,15 @@ class FocusGuardService : AccessibilityService() {
     override fun onUnbind(intent: android.content.Intent?): Boolean {
         Guard.isRunning = false
         handler.removeCallbacks(check)
+        handler.removeCallbacks(meter)
+        meterRunning = false
         return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
         Guard.isRunning = false
         handler.removeCallbacks(check)
+        handler.removeCallbacks(meter)
         super.onDestroy()
     }
 
@@ -63,12 +82,9 @@ class FocusGuardService : AccessibilityService() {
         val result = InstagramScreens.detect(root)
         Guard.recordSeen(this, result)
 
-        // A reel player outside the Reels/Home/Explore tabs is a reel someone sent you.
-        val sharedReel = result.screen != Screen.REELS && result.screen != Screen.HOME &&
-            result.screen != Screen.SEARCH && InstagramScreens.isReelViewer(root)
-        reels.setViewer(sharedReel, System.currentTimeMillis())
+        reels.setViewer(isSharedReel(result.screen, root), System.currentTimeMillis())
 
-        if (Guard.isPaused(this) || !Guard.isBlocked(this, result.screen)) return
+        if (Guard.isUnlocked(this) || !Guard.isBlocked(this, result.screen)) return
         val now = System.currentTimeMillis()
         if (now - lastBounceAt < COOLDOWN_MS) return
         // Never fight the user in a tight loop if something unexpected keeps us bouncing.
@@ -82,7 +98,7 @@ class FocusGuardService : AccessibilityService() {
 
     /** Swiping from the reel you were sent to the next one: go back to the chat instead. */
     private fun onScrolled(event: AccessibilityEvent) {
-        if (!Guard.limitSharedReels(this) || Guard.isPaused(this)) return
+        if (!Guard.limitSharedReels(this) || Guard.isUnlocked(this)) return
         val source = try { event.source } catch (e: Exception) { null } ?: return
         val bounds = android.graphics.Rect().also(source::getBoundsInScreen)
         val screenHeight = resources.displayMetrics.heightPixels
@@ -108,6 +124,60 @@ class FocusGuardService : AccessibilityService() {
         performGlobalAction(GLOBAL_ACTION_BACK)
         Guard.recordBounce(this, "shared reel: swiped on, went back")
         Toast.makeText(this, R.string.reel_toast, Toast.LENGTH_SHORT).show()
+    }
+
+    /** A reel player outside the Reels/Home/Explore tabs is a reel someone sent you. */
+    private fun isSharedReel(screen: Screen, root: UiNode) =
+        screen != Screen.REELS && screen != Screen.HOME && screen != Screen.SEARCH &&
+            InstagramScreens.isReelViewer(root)
+
+    private fun ensureMeter() {
+        if (meterRunning || !Guard.isUnlocked(this)) return
+        meterRunning = true
+        handler.postDelayed(meter, METER_MS)
+    }
+
+    /**
+     * Every few seconds while unlocked: if Instagram is on screen showing something that's
+     * normally blocked, spend that time from today's allowance. Chatting is free.
+     */
+    private fun tickMeter() {
+        if (!Guard.isUnlocked(this)) {
+            meterRunning = false
+            return
+        }
+        val now = System.currentTimeMillis()
+        if (now - lastInstagramSeenAt > AUTO_LOCK_MS) {
+            // Left Instagram a while ago: lock again so it isn't forgotten open.
+            Guard.lock(this)
+            meterRunning = false
+            return
+        }
+        val power = getSystemService(android.os.PowerManager::class.java)
+        if (power?.isInteractive != true) return
+        val rootInfo = try { rootInActiveWindow } catch (e: Exception) { null } ?: return
+        if (rootInfo.packageName != InstagramScreens.PACKAGE) return
+        lastInstagramSeenAt = now
+        val root = snapshot(rootInfo, 0, intArrayOf(MAX_NODES)) ?: return
+        val screen = InstagramScreens.detect(root).screen
+        val sharedReel = Guard.limitSharedReels(this) && isSharedReel(screen, root)
+        if (!Guard.isBlocked(this, screen) && !sharedReel) return
+
+        val remaining = Guard.addUsage(this, METER_MS)
+        when {
+            remaining <= 0 -> {
+                Guard.lock(this)
+                meterRunning = false
+                Toast.makeText(this, R.string.time_up_toast, Toast.LENGTH_LONG).show()
+                lastBounceAt = now
+                if (sharedReel) performGlobalAction(GLOBAL_ACTION_BACK) else bounce(root, screen)
+            }
+            remaining <= 60_000 && !warnedLastMinute -> {
+                warnedLastMinute = true
+                Toast.makeText(this, R.string.one_minute_toast, Toast.LENGTH_SHORT).show()
+            }
+            remaining > 60_000 -> warnedLastMinute = false
+        }
     }
 
     private fun bounce(root: UiNode, from: Screen) {
@@ -148,6 +218,8 @@ class FocusGuardService : AccessibilityService() {
 
     companion object {
         private const val CHECK_DELAY_MS = 250L
+        private const val METER_MS = 5_000L
+        private const val AUTO_LOCK_MS = 10 * 60_000L
         private const val COOLDOWN_MS = 1_200L
         private const val LOOP_WINDOW_MS = 8_000L
         private const val MAX_BOUNCES_PER_WINDOW = 4

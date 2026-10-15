@@ -11,7 +11,9 @@ import android.provider.Settings
 object Guard {
 
     private const val PREFS = "guard"
-    private const val KEY_PAUSED_UNTIL = "paused_until"
+    private const val KEY_UNLOCKED = "unlocked"
+    private const val KEY_USAGE_DAY = "usage_day"
+    private const val KEY_USAGE_MS = "usage_ms"
     private const val KEY_LAST_SCREEN = "last_screen"
     private const val KEY_LAST_TABS = "last_tabs"
     private const val KEY_LAST_SEEN_AT = "last_seen_at"
@@ -45,14 +47,52 @@ object Guard {
     fun setLimitSharedReels(context: Context, on: Boolean) =
         prefs(context).edit().putBoolean(KEY_LIMIT_SHARED_REELS, on).apply()
 
-    fun pausedUntil(context: Context): Long = prefs(context).getLong(KEY_PAUSED_UNTIL, 0L)
+    // ---- Daily full-Instagram allowance ----------------------------------------------------
 
-    fun isPaused(context: Context) = System.currentTimeMillis() < pausedUntil(context)
+    private fun today(): String = java.time.LocalDate.now().toString()
 
-    fun pause(context: Context, minutes: Int) = prefs(context).edit()
-        .putLong(KEY_PAUSED_UNTIL, System.currentTimeMillis() + minutes * 60_000L).apply()
+    private fun allowance(context: Context): DailyAllowance {
+        val p = prefs(context)
+        return DailyAllowance(p.getString(KEY_USAGE_DAY, "").orEmpty(), p.getLong(KEY_USAGE_MS, 0L))
+    }
 
-    fun resume(context: Context) = prefs(context).edit().putLong(KEY_PAUSED_UNTIL, 0L).apply()
+    fun remainingTodayMs(context: Context): Long = allowance(context).remainingMs(today())
+
+    /** Adds time spent on normally-blocked screens; returns what's left today. */
+    fun addUsage(context: Context, ms: Long): Long {
+        val updated = allowance(context).plus(today(), ms)
+        prefs(context).edit().putString(KEY_USAGE_DAY, updated.day).putLong(KEY_USAGE_MS, updated.usedMs).apply()
+        return updated.remainingMs(today())
+    }
+
+    /** Full Instagram is on while unlocked and there's allowance left today. */
+    fun isUnlocked(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_UNLOCKED, false) && remainingTodayMs(context) > 0
+
+    /** Returns false if today's allowance is already used up. */
+    fun unlock(context: Context): Boolean {
+        if (remainingTodayMs(context) <= 0) return false
+        prefs(context).edit().putBoolean(KEY_UNLOCKED, true).apply()
+        return true
+    }
+
+    fun lock(context: Context) = prefs(context).edit().putBoolean(KEY_UNLOCKED, false).apply()
+
+    /** "7:30" style. */
+    fun formatRemaining(ms: Long): String {
+        val s = (ms + 999) / 1000
+        return "%d:%02d".format(s / 60, s % 60)
+    }
+
+    fun openInstagramHome(context: Context): Boolean {
+        val intent = context.packageManager.getLaunchIntentForPackage(InstagramScreens.PACKAGE) ?: return false
+        return try {
+            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
 
     fun isInstagramInstalled(context: Context): Boolean = try {
         context.packageManager.getPackageInfo(InstagramScreens.PACKAGE, 0)

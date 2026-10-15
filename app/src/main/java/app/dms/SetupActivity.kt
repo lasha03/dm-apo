@@ -49,7 +49,10 @@ class SetupActivity : ComponentActivity() {
             if (!Guard.openInbox(this)) installButton.performClick()
         }
         pauseButton.setOnClickListener {
-            if (Guard.isPaused(this)) Guard.resume(this) else Guard.pause(this, PAUSE_MINUTES)
+            when {
+                Guard.isUnlocked(this) -> Guard.lock(this)
+                Guard.unlock(this) -> Guard.openInstagramHome(this)
+            }
             refresh()
         }
 
@@ -78,24 +81,26 @@ class SetupActivity : ComponentActivity() {
         val installed = Guard.isInstagramInstalled(this)
         val enabled = Guard.isServiceEnabled(this)
         val running = Guard.isRunning
-        val paused = Guard.isPaused(this)
+        val unlocked = Guard.isUnlocked(this)
+        val left = Guard.remainingTodayMs(this)
 
         status.text = getString(
             when {
                 !installed -> R.string.status_no_instagram
                 !enabled -> R.string.status_guard_off
                 !running -> R.string.status_not_running
-                paused -> R.string.status_paused
+                unlocked -> R.string.status_unlocked
                 else -> R.string.status_ready
             }
         )
         installButton.isVisible = !installed
         enableButton.text = getString(if (enabled) R.string.guard_settings else R.string.enable_guard)
         pauseButton.isVisible = enabled
-        pauseButton.text = if (paused) {
-            getString(R.string.resume_guard)
-        } else {
-            getString(R.string.pause_guard, PAUSE_MINUTES)
+        pauseButton.isEnabled = unlocked || left > 0
+        pauseButton.text = when {
+            unlocked -> getString(R.string.lock_again, Guard.formatRemaining(left))
+            left > 0 -> getString(R.string.use_full_instagram, Guard.formatRemaining(left))
+            else -> getString(R.string.no_time_left)
         }
 
         val d = Guard.diagnostics(this)
@@ -123,9 +128,5 @@ class SetupActivity : ComponentActivity() {
         true
     } catch (e: Exception) {
         false
-    }
-
-    companion object {
-        private const val PAUSE_MINUTES = 10
     }
 }
