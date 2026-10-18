@@ -25,8 +25,14 @@ class ReelSwipeDetectorTest {
 
     @Test fun swipingIsDetectedByDistanceWhenNoIndex() {
         val d = opened()
-        assertFalse(d.onScroll("clips_viewer_view_pager", null, 1f, -1, 600, h, 1_000))
-        assertTrue(d.onScroll("clips_viewer_view_pager", null, 1f, -1, 900, h, 1_100))
+        assertFalse(d.onScroll("clips_viewer_view_pager", null, 1f, -1, 500, h, 1_000))
+        assertTrue(d.onScroll("clips_viewer_view_pager", null, 1f, -1, 400, h, 1_100))
+    }
+
+    @Test fun firstSwipeCountsEvenWithoutAStartIndex() {
+        // Nothing reported while the reel opened; the very first pager move is a swipe.
+        val d = opened()
+        assertTrue(d.onScroll("clips_viewer_view_pager", null, 1f, 1, 0, h, 3_000))
     }
 
     @Test fun commentsAndChatListsAreIgnored() {

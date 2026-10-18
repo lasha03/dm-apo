@@ -52,14 +52,11 @@ class ReelSwipeDetector {
             return false
         }
         if (fromIndex >= 0) {
-            if (startIndex < 0) {
-                startIndex = fromIndex
-                return false
-            }
-            return fromIndex != startIndex
+            // No start learned while opening means this scroll *is* you moving on.
+            return startIndex < 0 || fromIndex != startIndex
         }
         travelled += abs(deltaY)
-        return screenHeight > 0 && travelled > screenHeight / 2
+        return screenHeight > 0 && travelled > screenHeight / 3
     }
 
     private fun isPager(sourceId: String?, className: String?): Boolean {
@@ -71,6 +68,6 @@ class ReelSwipeDetector {
 
     companion object {
         private const val MIN_HEIGHT_FRACTION = 0.8f
-        private const val SETTLE_MS = 800L
+        private const val SETTLE_MS = 500L
     }
 }

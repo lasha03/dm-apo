@@ -12,6 +12,10 @@ class UiNode(
     val selected: Boolean = false,
     val clickable: Boolean = false,
     val children: List<UiNode> = emptyList(),
+    /** A text field (e.g. the message box in a chat). */
+    val editable: Boolean = false,
+    /** On-screen height in pixels (0 if unknown). */
+    val height: Int = 0,
     /** The live AccessibilityNodeInfo, so the service can click it. Null in tests. */
     val ref: Any? = null,
 ) {
@@ -79,8 +83,16 @@ object InstagramScreens {
      * "clips_…"). Callers combine this with the tab: outside the Reels tab it means a
      * reel someone sent you.
      */
-    fun isReelViewer(root: UiNode): Boolean =
-        find(root) { node -> node.viewId?.let { isReelViewId(it) } == true } != null
+    fun isReelViewer(root: UiNode): Boolean {
+        // Must fill most of the screen, so a reel preview bubble inside a chat doesn't count.
+        val minHeight = if (root.height > 0) root.height * 3 / 4 else 0
+        return find(root) { node ->
+            node.viewId?.let { isReelViewId(it) } == true && node.height >= minHeight
+        } != null
+    }
+
+    /** True if a text field is on screen; a chat always has its message box. */
+    fun hasTextInput(root: UiNode): Boolean = find(root) { it.editable } != null
 
     internal fun isReelViewId(id: String): Boolean {
         val lower = id.lowercase()
