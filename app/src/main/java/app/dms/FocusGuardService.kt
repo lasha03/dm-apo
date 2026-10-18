@@ -20,6 +20,7 @@ class FocusGuardService : AccessibilityService() {
     private var checkScheduled = false
     private var lastBounceAt = 0L
     private val recentBounces = ArrayDeque<Long>()
+    private var lastBounceFrom: String? = null
     private val reels = ReelSwipeDetector()
     private val screenContext = ScreenContext()
     private var recordedPager: String? = null
@@ -90,7 +91,8 @@ class FocusGuardService : AccessibilityService() {
         Guard.recordSeen(this, result)
 
         val now = System.currentTimeMillis()
-        val kind = screenContext.observe(result.screen, InstagramScreens.isReelViewer(root), InstagramScreens.hasTextInput(root))
+        val reelPlayer = InstagramScreens.isReelViewer(root)
+        val kind = screenContext.observe(result.screen, reelPlayer, InstagramScreens.hasTextInput(root))
         reels.setViewer(kind == ScreenContext.Kind.SharedReel && Guard.limitSharedReels(this), now)
 
         val limitedBy = (kind as? ScreenContext.Kind.Limited)?.screen
@@ -99,6 +101,7 @@ class FocusGuardService : AccessibilityService() {
             // Somewhere free (a chat, the inbox…): any earlier bounce worked.
             wasUsingAllowance = false
             recentBounces.clear()
+            lastBounceFrom = null
             return
         }
 
@@ -110,17 +113,23 @@ class FocusGuardService : AccessibilityService() {
             ensureMeter()
             return
         }
-        bounceWithLimits(root, limitedBy ?: result.screen, now)
+        bounceOut(root, limitedBy ?: result.screen, reelPlayer, now)
     }
 
-    private fun bounceWithLimits(root: UiNode, from: Screen, now: Long) {
-        if (now - lastBounceAt < COOLDOWN_MS) return
-        // Only stops if bouncing keeps failing to get out (the list clears once we're somewhere free).
-        while (recentBounces.isNotEmpty() && now - recentBounces.first() > LOOP_WINDOW_MS) recentBounces.removeFirst()
-        if (recentBounces.size >= MAX_BOUNCES_PER_WINDOW) return
+    /** recentBounces = attempts that left us on the same screen, i.e. ones that didn't work. */
+    private fun bounceOut(root: UiNode, from: Screen, reelPlayer: Boolean, now: Long) {
+        val here = "$from/$reelPlayer"
+        if (here != lastBounceFrom) {
+            // Moved on (e.g. reel player → feed): the last bounce worked, start fresh here.
+            recentBounces.clear()
+            lastBounceFrom = here
+        }
+        while (recentBounces.isNotEmpty() && now - recentBounces.first() > FAILED_WINDOW_MS) recentBounces.removeFirst()
+        val failed = recentBounces.size
+        if (now - lastBounceAt < BounceStrategy.cooldownMs(failed)) return
         lastBounceAt = now
         recentBounces.addLast(now)
-        bounce(root, from)
+        bounce(root, from, BounceStrategy.choose(reelPlayer, failed, InstagramScreens.findMessagesButton(root) != null))
     }
 
     /** Swiping past the reel you were sent: that's feed time, or back to the chat if none is left. */
@@ -207,22 +216,25 @@ class FocusGuardService : AccessibilityService() {
         }
     }
 
-    private fun bounce(root: UiNode, from: Screen) {
-        var node = InstagramScreens.findMessagesButton(root)
-        while (node != null) {
-            val info = node.ref as? AccessibilityNodeInfo
-            if (info != null && info.isClickable && info.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
-                Guard.recordBounce(this, "${from.name}: tapped ${node.viewId ?: node.desc ?: "Messages"}")
-                return
+    private fun bounce(root: UiNode, from: Screen, method: BounceStrategy.Method) {
+        val where = if (from == Screen.REELS && InstagramScreens.isReelViewer(root)) "reel player" else from.name
+        if (method == BounceStrategy.Method.TAP_MESSAGES) {
+            var node = InstagramScreens.findMessagesButton(root)
+            while (node != null) {
+                val info = node.ref as? AccessibilityNodeInfo
+                if (info != null && info.isClickable && info.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                    Guard.recordBounce(this, "$where: tapped ${node.viewId ?: node.desc ?: "Messages"}")
+                    return
+                }
+                node = node.parent
             }
-            node = node.parent
         }
-        if (Guard.openInbox(this)) {
-            Guard.recordBounce(this, "${from.name}: reopened inbox")
+        if (method == BounceStrategy.Method.OPEN_INBOX && Guard.openInbox(this)) {
+            Guard.recordBounce(this, "$where: reopened inbox")
             return
         }
         performGlobalAction(GLOBAL_ACTION_BACK)
-        Guard.recordBounce(this, "${from.name}: pressed back")
+        Guard.recordBounce(this, "$where: pressed back")
     }
 
     /** Copies the visible part of Instagram's UI tree: ids, labels and state only. */
@@ -250,9 +262,7 @@ class FocusGuardService : AccessibilityService() {
         private const val CHECK_DELAY_MS = 150L
         private const val METER_MS = 5_000L
         private const val ALLOWANCE_TOAST_GAP_MS = 60_000L
-        private const val COOLDOWN_MS = 600L
-        private const val LOOP_WINDOW_MS = 8_000L
-        private const val MAX_BOUNCES_PER_WINDOW = 6
+        private const val FAILED_WINDOW_MS = 15_000L
         private const val MAX_NODES = 1_500
         private const val MAX_DEPTH = 40
     }
